@@ -1,4 +1,4 @@
-module "https://github.com/adarosci/go-brzomessages-client"
+module github.com/adarosci/go-brzomessages-client
 
 go 1.12
 
