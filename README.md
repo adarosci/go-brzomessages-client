@@ -1,1 +1,1 @@
-# go-brzomessages-client
+# client
