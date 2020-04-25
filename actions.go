@@ -60,8 +60,8 @@ func (a connection) start() (lastMessageID string, err error) {
 	return
 }
 
-func (a connection) stop() (err error) {
-	url := fmt.Sprintf("%v?token=%v", DisconnectURL, a.token)
+func (a connection) stop(auth string) (err error) {
+	url := fmt.Sprintf("%v?token=%v&auth=%v", DisconnectURL, a.token, auth)
 	client, req, _ := a.create(url, "")
 	res, err := client.Do(req)
 	if err != nil {

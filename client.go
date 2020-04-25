@@ -62,7 +62,13 @@ func NewConnect(accessKey, privateKey string,
 				messageReceived := MessageReceived{}
 				if er := json.Unmarshal([]byte(messageData.Body.Data), &messageReceived); er == nil && messageReceived.Type != "" {
 					if handlerMessage(messageReceived) {
-						conn.confirm(messageReceived.Data.Info.ID, messageReceived.Data.Info.RemoteJid)
+						content, _ := json.Marshal(map[string]string{
+							"Id":        messageReceived.Data.Info.ID,
+							"RemoteJid": messageReceived.Data.Info.RemoteJid,
+							"Token":     accessKey,
+						})
+						c.WriteMessage(websocket.TextMessage, content)
+						//conn.confirm(messageReceived.Data.Info.ID, messageReceived.Data.Info.RemoteJid)
 					}
 					continue
 				}
@@ -70,7 +76,13 @@ func NewConnect(accessKey, privateKey string,
 				messageAck := MessageAck{}
 				if er := json.Unmarshal([]byte(messageData.Body.Data), &messageAck); er == nil {
 					if handlerAck(messageAck) {
-						conn.confirm(messageAck.ID, messageAck.To)
+						content, _ := json.Marshal(map[string]string{
+							"Id":        messageAck.ID,
+							"RemoteJid": messageAck.To,
+							"Token":     accessKey,
+						})
+						c.WriteMessage(websocket.TextMessage, content)
+						//conn.confirm(messageAck.ID, messageAck.To)
 					}
 					continue
 				}
@@ -100,7 +112,7 @@ func NewConnect(accessKey, privateKey string,
 		case <-interrupt:
 		}
 
-		conn.stop()
+		conn.stop(auth)
 
 		<-time.After(time.Millisecond * 250)
 
