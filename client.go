@@ -20,15 +20,16 @@ type BrzoMessagesClient struct {
 // NewConnect create new connection client messages
 func NewConnect(accessKey, privateKey string,
 	handlerMessage func(MessageReceived) bool,
-	handlerAck func(MessageAck) bool) error {
+	handlerAck func(MessageAck) bool,
+	updateConn func(conn *Connection)) (*Connection, error) {
 
-	conn := connection{accessKey, privateKey}
+	conn := &Connection{accessKey, privateKey, false, nil}
 	auth, err := conn.autenticate()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err, string(debug.Stack()))
 		<-time.After(time.Millisecond * 250)
-		go NewConnect(accessKey, privateKey, handlerMessage, handlerAck)
-		return err
+		go NewConnect(accessKey, privateKey, handlerMessage, handlerAck, updateConn)
+		return nil, err
 	}
 
 	go func() {
@@ -36,6 +37,9 @@ func NewConnect(accessKey, privateKey string,
 		signal.Notify(interrupt, os.Interrupt)
 
 		closeConnection := make(chan bool)
+		conn.channelClose = closeConnection
+
+		updateConn(conn)
 
 		uri := fmt.Sprintf("%v/%v?token=%v&p=%v", SocketURL, accessKey, accessKey, auth)
 		c, _, err := websocket.DefaultDialer.Dial(uri, nil)
@@ -115,9 +119,10 @@ func NewConnect(accessKey, privateKey string,
 		conn.stop(auth)
 
 		<-time.After(time.Millisecond * 250)
-
-		go NewConnect(accessKey, privateKey, handlerMessage, handlerAck)
+		if !conn.dispose {
+			go NewConnect(accessKey, privateKey, handlerMessage, handlerAck, updateConn)
+		}
 	}()
 
-	return nil
+	return conn, nil
 }

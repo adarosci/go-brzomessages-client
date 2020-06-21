@@ -9,11 +9,18 @@ import (
 	"strings"
 )
 
-type connection struct {
+type Connection struct {
 	token, privateKey string
+	dispose           bool
+	channelClose      chan bool
 }
 
-func (a connection) create(url, content string) (*http.Client, *http.Request, error) {
+func (a *Connection) Dispose() {
+	a.dispose = true
+	a.channelClose <- true
+}
+
+func (a *Connection) create(url, content string) (*http.Client, *http.Request, error) {
 	payload := strings.NewReader(content)
 
 	client := &http.Client{}
@@ -26,7 +33,7 @@ func (a connection) create(url, content string) (*http.Client, *http.Request, er
 	return client, req, nil
 }
 
-func (a connection) autenticate() (key string, err error) {
+func (a *Connection) autenticate() (key string, err error) {
 	url := fmt.Sprintf("%v?token=%v&wait=true", AuthURL, a.token)
 	client, req, _ := a.create(url, "")
 	res, err := client.Do(req)
@@ -43,7 +50,7 @@ func (a connection) autenticate() (key string, err error) {
 	return
 }
 
-func (a connection) start() (lastMessageID string, err error) {
+func (a *Connection) start() (lastMessageID string, err error) {
 	url := fmt.Sprintf("%v?token=%v", ConnectURL, a.token)
 	client, req, _ := a.create(url, "")
 	res, err := client.Do(req)
@@ -60,7 +67,7 @@ func (a connection) start() (lastMessageID string, err error) {
 	return
 }
 
-func (a connection) stop(auth string) (err error) {
+func (a *Connection) stop(auth string) (err error) {
 	url := fmt.Sprintf("%v?token=%v&auth=%v", DisconnectURL, a.token, auth)
 	client, req, _ := a.create(url, "")
 	res, err := client.Do(req)
@@ -74,7 +81,7 @@ func (a connection) stop(auth string) (err error) {
 	return
 }
 
-func (a connection) confirm(id, remoteJid string) (err error) {
+func (a *Connection) confirm(id, remoteJid string) (err error) {
 	url := fmt.Sprintf("%v?token=%v", ConfirmURL, a.token)
 
 	content, _ := json.Marshal(map[string]string{
