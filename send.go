@@ -61,3 +61,24 @@ func (c *Connection) sendMessage(message interface{}) (int, bool) {
 	res, err := client.Do(req)
 	return res.StatusCode, res.StatusCode == 200
 }
+
+// SendMessage public send message
+func (c *Connection) SendMessage(message interface{}) (int, bool) {
+	url := BotURL + "?token=" + c.token + "&wait=true"
+	method := "POST"
+
+	data, _ := json.Marshal(message)
+	payload := strings.NewReader(string(data))
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, payload)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+c.privateKey)
+
+	res, err := client.Do(req)
+	return res.StatusCode, res.StatusCode == 200
+}
