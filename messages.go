@@ -47,7 +47,13 @@ func (m MessageReceived) FileName() string {
 	if m.File == "" {
 		return ""
 	}
-	fType := strings.Split(m.Type, ";")[0]
+	var fType string
+	sp := strings.Split(m.Data.Type, ";")
+	if len(sp) > 0 {
+		fType = sp[0]
+	} else {
+		fType = m.Data.Type
+	}
 	return m.Data.Info.ID + "." + strings.Split(fType, "/")[1]
 }
 
