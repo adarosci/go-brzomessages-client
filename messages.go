@@ -1,5 +1,7 @@
 package client
 
+import "strings"
+
 // MessageData struct
 type MessageData struct {
 	Version int `json:"version"`
@@ -22,6 +24,8 @@ type MessageReceived struct {
 			PushName  string `json:"PushName"`
 			Status    int    `json:"Status"`
 		} `json:"Info"`
+		Caption     string `json:"Caption"`
+		Type        string `json:"Type"`
 		ContextInfo struct {
 			QuotedMessageID string      `json:"QuotedMessageID"`
 			QuotedMessage   interface{} `json:"QuotedMessage"`
@@ -31,6 +35,20 @@ type MessageReceived struct {
 	} `json:"data"`
 	File string `json:"file"`
 	WID  string `json:"wid"`
+}
+
+// IsFile is file message
+func (m MessageReceived) IsFile() bool {
+	return m.File != ""
+}
+
+// FileName return file name
+func (m MessageReceived) FileName() string {
+	if m.File == "" {
+		return ""
+	}
+	fType := strings.Split(m.Type, ";")[0]
+	return m.Data.Info.ID + "." + strings.Split(fType, "/")[1]
 }
 
 // MessageAck struct
