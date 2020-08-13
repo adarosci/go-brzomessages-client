@@ -47,6 +47,9 @@ func (m MessageReceived) FileName() string {
 	if m.File == "" {
 		return ""
 	}
+	if m.Data.Type == "text/plain" {
+		return m.Data.Info.ID + ".txt"
+	}
 	var fType string
 	sp := strings.Split(m.Data.Type, ";")
 	if len(sp) > 0 {
