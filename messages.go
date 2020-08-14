@@ -26,6 +26,7 @@ type MessageReceived struct {
 		} `json:"Info"`
 		Caption     string `json:"Caption"`
 		Type        string `json:"Type"`
+		FileName    string `json:"FileName"`
 		ContextInfo struct {
 			QuotedMessageID string      `json:"QuotedMessageID"`
 			QuotedMessage   interface{} `json:"QuotedMessage"`
@@ -46,6 +47,9 @@ func (m MessageReceived) IsFile() bool {
 func (m MessageReceived) FileName() string {
 	if m.File == "" {
 		return ""
+	}
+	if m.Data.FileName != "" {
+		return m.Data.FileName
 	}
 	if m.Data.Type == "text/plain" {
 		return m.Data.Info.ID + ".txt"
