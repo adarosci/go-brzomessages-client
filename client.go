@@ -22,38 +22,19 @@ func NewConnect(accessKey, privateKey string,
 	handlerMessage func(MessageReceived) bool,
 	handlerAck func(MessageAck) bool,
 	updateConn func(conn *Connection)) (*Connection, error) {
-	defer func() {
-		if p := recover(); p != nil {
-			fmt.Fprintln(os.Stderr, p, string(debug.Stack()))
-			<-time.After(time.Millisecond * 250)
 
-			go NewConnect(accessKey, privateKey, handlerMessage, handlerAck, updateConn)
-
-			return
-		}
-	}()
+	fmt.Println("-> Conectando BRZO", time.Now())
 
 	conn := &Connection{accessKey, privateKey, false, nil}
 	auth, err := conn.autenticate()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err, string(debug.Stack()))
-		<-time.After(time.Millisecond * 250)
+		<-time.After(time.Second * 5)
 		go NewConnect(accessKey, privateKey, handlerMessage, handlerAck, updateConn)
 		return nil, err
 	}
 
 	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				fmt.Fprintln(os.Stderr, p, string(debug.Stack()))
-				<-time.After(time.Millisecond * 250)
-
-				go NewConnect(accessKey, privateKey, handlerMessage, handlerAck, updateConn)
-
-				return
-			}
-		}()
-
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
 
@@ -71,18 +52,9 @@ func NewConnect(accessKey, privateKey string,
 		defer c.Close()
 
 		go func() {
-			defer func() {
-				if p := recover(); p != nil {
-					fmt.Fprintln(os.Stderr, p, string(debug.Stack()))
-					<-time.After(time.Millisecond * 250)
-
-					go NewConnect(accessKey, privateKey, handlerMessage, handlerAck, updateConn)
-
-					return
-				}
-			}()
 			for {
 				_, message, err := c.ReadMessage()
+				fmt.Println("-> Message received BRZO", time.Now())
 				if err != nil {
 					log.Println("read:", err)
 					closeConnection <- true
@@ -125,21 +97,13 @@ func NewConnect(accessKey, privateKey string,
 		}()
 
 		go func() {
-			defer func() {
-				if p := recover(); p != nil {
-					fmt.Fprintln(os.Stderr, p, string(debug.Stack()))
-					<-time.After(time.Millisecond * 250)
-
-					go NewConnect(accessKey, privateKey, handlerMessage, handlerAck, updateConn)
-
-					return
-				}
-			}()
+			// ping
 			for {
 				<-time.After(time.Second * 20)
 				data, _ := json.Marshal(map[string]interface{}{
 					"ping": true,
 				})
+				fmt.Println("-> BRZO send ping", time.Now())
 				err := c.WriteMessage(websocket.TextMessage, data)
 				if err != nil {
 					log.Println("read:", err)
@@ -149,7 +113,14 @@ func NewConnect(accessKey, privateKey string,
 			}
 		}()
 
-		conn.start()
+		lt, err := conn.start()
+		if err != nil {
+			fmt.Println("-> Erro ao conectar BRZO", lt, err, time.Now())
+			<-time.After(time.Second * 5)
+			go NewConnect(accessKey, privateKey, handlerMessage, handlerAck, updateConn)
+		}
+
+		fmt.Println("-> BRZO Conectado", lt, err)
 
 		select {
 		case <-closeConnection:
@@ -158,7 +129,9 @@ func NewConnect(accessKey, privateKey string,
 
 		conn.stop(auth)
 
-		<-time.After(time.Millisecond * 250)
+		fmt.Println("-> Reconectando BRZO 5 segundos ->", lt, err, time.Now())
+
+		<-time.After(time.Second * 5)
 		if !conn.dispose {
 			go NewConnect(accessKey, privateKey, handlerMessage, handlerAck, updateConn)
 		}
