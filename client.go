@@ -22,6 +22,16 @@ func NewConnect(accessKey, privateKey string,
 	handlerMessage func(MessageReceived) bool,
 	handlerAck func(MessageAck) bool,
 	updateConn func(conn *Connection)) (*Connection, error) {
+	defer func() {
+		if p := recover(); p != nil {
+			fmt.Fprintln(os.Stderr, p, string(debug.Stack()))
+			<-time.After(time.Millisecond * 250)
+
+			go NewConnect(accessKey, privateKey, handlerMessage, handlerAck, updateConn)
+
+			return
+		}
+	}()
 
 	conn := &Connection{accessKey, privateKey, false, nil}
 	auth, err := conn.autenticate()
@@ -33,6 +43,17 @@ func NewConnect(accessKey, privateKey string,
 	}
 
 	go func() {
+		defer func() {
+			if p := recover(); p != nil {
+				fmt.Fprintln(os.Stderr, p, string(debug.Stack()))
+				<-time.After(time.Millisecond * 250)
+
+				go NewConnect(accessKey, privateKey, handlerMessage, handlerAck, updateConn)
+
+				return
+			}
+		}()
+
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
 
@@ -50,6 +71,16 @@ func NewConnect(accessKey, privateKey string,
 		defer c.Close()
 
 		go func() {
+			defer func() {
+				if p := recover(); p != nil {
+					fmt.Fprintln(os.Stderr, p, string(debug.Stack()))
+					<-time.After(time.Millisecond * 250)
+
+					go NewConnect(accessKey, privateKey, handlerMessage, handlerAck, updateConn)
+
+					return
+				}
+			}()
 			for {
 				_, message, err := c.ReadMessage()
 				if err != nil {
@@ -94,7 +125,16 @@ func NewConnect(accessKey, privateKey string,
 		}()
 
 		go func() {
-			// ping
+			defer func() {
+				if p := recover(); p != nil {
+					fmt.Fprintln(os.Stderr, p, string(debug.Stack()))
+					<-time.After(time.Millisecond * 250)
+
+					go NewConnect(accessKey, privateKey, handlerMessage, handlerAck, updateConn)
+
+					return
+				}
+			}()
 			for {
 				<-time.After(time.Second * 20)
 				data, _ := json.Marshal(map[string]interface{}{
